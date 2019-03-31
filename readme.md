@@ -1,38 +1,39 @@
-<!-- <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=default"></script> -->
-<!-- <script src='https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-MML-AM_CHTML' async></script> -->
-<!-- <script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script> -->
-<!-- <img src="https://latex.codecogs.com/svg.latex?\Large&space;x=\frac{-b\pm\sqrt{b^2-4ac}}{2a}"  /> -->
-
-
 # Lyrics generator
 
 ## Table of Contents
 
-1. [Introduction](#)
-	* [Motivation](#)
-	* [Exploratory data analysis](#)
-2. [Character level recurrent neural network](#)
-    * [How to prepare the data and train the model?](#)
-    * [How to generate lyrics? Teacher forcing](#)
-    * [Eminem's lyrics generator](#)
-3. [Word level model](#)
-    * [Word embedding and word2vec](#)
-    * [Michael Jackson's lyrics generator based on word-level RNN](#)
-    * [How to improve word-level model?](#)
-        * [Using pretrained word embedding](#)
-        * [Word-level seq2seq model](#)
-5. [Concluding remarks](#)
+<!-- vim-markdown-toc GFM -->
 
-## 1. Introduction
+* [Introduction](#introduction)
+    * [1. Motivation](#1-motivation)
+    * [2. Exploratory data analysis](#2-exploratory-data-analysis)
+        * [Bag-of-words](#bag-of-words)
+* [Character-level recurrent neural network(RNN)](#character-level-recurrent-neural-networkrnn)
+    * [1. How to prepare the data and train the model?](#1-how-to-prepare-the-data-and-train-the-model)
+    * [2. How to generate lyrics? Teacher forcing](#2-how-to-generate-lyrics-teacher-forcing)
+    * [3. Eminem's lyrics generator](#3-eminems-lyrics-generator)
+* [Word-level RNN](#word-level-rnn)
+    * [1. Word embedding and word2vec](#1-word-embedding-and-word2vec)
+    * [2. Michael Jackson's lyrics generator based on word-level RNN](#2-michael-jacksons-lyrics-generator-based-on-word-level-rnn)
+    * [3. How to improve word-level model?](#3-how-to-improve-word-level-model)
+        * [a. Using pretrained word embedding](#a-using-pretrained-word-embedding)
+        * [b. Word-level seq2seq model](#b-word-level-seq2seq-model)
+* [Concluding remarks](#concluding-remarks)
+* [Reference](#reference)
+* [Acknowledgement](#acknowledgement)
 
-### a. Motivation
+<!-- vim-markdown-toc -->
+
+## Introduction
+
+### 1. Motivation
 
 Natural language processing is among the most attractive and difficult field in machine learning. Different from computer vision and other machine learning tasks, NLP does not convey meaning through any physical manifestation. By the virtue of deep learning, NLP achieved tremendous progress in keyword search, machine translation, semantic analysis and etc. In this project, I would like to make a lyrics generator by using both character level and word level RNN(recurrent neural network).
 
 
-Neural network 					|   Lyric generator            
-:-------------------------:|:-------------------------:
-<img src="images/neural.jpeg" ></img>	|	<img src="images/eminem.jpg" ></img> 
+Neural network                        | Lyric generator
+:-------------------------:           | :-------------------------:
+<img src="images/neural.jpeg" ></img> | <img src="images/eminem.jpg" ></img>
 
 The dataset is from kaggle with 3.8 million song lyrics from various artist.
 
@@ -48,14 +49,13 @@ The dataset is from kaggle with 3.8 million song lyrics from various artist.
 
 But I will only use lyrics from Eminem and Michael Jackson. Because they have around 400 songs, it is easier to extract regular patterns from them.
 
-### b. Exploratory data analysis
+### 2. Exploratory data analysis
 
 Unlike other machine learning tasks, there is not much visualization we can do with NLP. And data cleaning will be based on the model that we want to explore. For character-based model, it is necessay to keep punctuations as they are part of the characters. However, for word-based model, punctuations are supposed to be removed. To briefly explore the dataset, we will count most frequently used words for different artists (bag of words or unigram). Consequently, very crude sentiment score can be obtained from it.
 
-#### Most frequent word and sentiment score
-
+#### Bag-of-words
 Remove stop words and punctuations from lyrics
-```
+```python
 from sklearn.feature_extraction.text import CountVectorizer
 
 vectorizer = CountVectorizer(stop_words='english')
@@ -63,7 +63,7 @@ X = vectorizer.fit_transform([eminem_lyrics])
 ```
 
 Sentiment score base on bag-of-words
-```
+```python
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 def sentiment(eminem_lyrics):
@@ -72,15 +72,15 @@ def sentiment(eminem_lyrics):
     return score
 ```
 
-Michael Jackson             |   Eminem           
-:-------------------------:|:-------------------------:
-<img src="images/mj.jpg"  ></img>   |   <img src="images/eminem2.jpg"  ></img> 
-sentiment score: 1.0 |  sentiment score: -1.0
+Michael Jackson                   | Eminem
+:-------------------------:       | :-------------------------:
+<img src="images/mj.jpg"  ></img> | <img src="images/eminem2.jpg"  ></img>
+sentiment score: 1.0              | sentiment score: -1.0
 
 Based on bag of words, one can do naive bayes to predict the genre of songs, but we will not cover it here. Let us go deeper to deep learning.
 
 
-## 2. Character-level recurrent neural network(RNN)
+## Character-level recurrent neural network(RNN)
 
 Why recurrent? Different from vanilla neural network, RNN (see below, pic from wikipedia) is able to process sequences of inputs (such as words and sentences) by utilizing the internel state (memory state). Hence, it is regarded as a very promising candidate to solve NLP tasks.
 
@@ -110,45 +110,44 @@ After 600 epochs, the model achieved 64% accuracy for validation set.
 Epoch 600/600 - loss: 0.7529 - acc: 0.7858 - val_loss: 1.6630 - val_acc: 0.6402
 ```
 
-#### a. How to prepare the data and train the model?
+### 1. How to prepare the data and train the model?
 
-1. One-hot encode all characters ( a-z, 0-9 and punctuations ``` !"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n ``` )
-```
-from keras.utils import to_categorical
+* One-hot encode all characters ( a-z, 0-9 and punctuations ``` !"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n ``` )
+    ```python
+    from keras.utils import to_categorical
 
-one-hot_X = to_categorical(X, num_classes=vocab_size)
+    one-hot_X = to_categorical(X, num_classes=vocab_size)
 
-[1,2,3] -> [[1,0,0], [0,1,0], [0,0,1]]
-```
-2. Make a sliding window that collects 10 characters as input. Model only generates one character.
-```
-input: 'hello, world' -> output: 'n', true output: 'p'
-```
-3. Calculate cross entropy and backpropagate the neural network to update 568,687 parameters.
-4. Slide the window to the right by one character. Extract new input and iterate above process until cost function reaches the minimum.
+    [1,2,3] -> [[1,0,0], [0,1,0], [0,0,1]]
+    ```
+* Make a sliding window that collects 10 characters as input. Model only generates one character.
+    ```
+    input: 'hello, world' -> output: 'n', true output: 'p'
+    ```
+* Calculate cross entropy and backpropagate the neural network to update 568,687 parameters.
+* Slide the window to the right by one character. Extract new input and iterate above process until cost function reaches the minimum.
 
 
-#### b. How to generate lyrics? Teacher forcing
+### 2. How to generate lyrics? Teacher forcing
 
-1. Make seed lyrics. Feed it to the neural network to generate one character after the seed lyrics, 'b'.
-```
-input: 'I want to ' -> output 'b'
-```
-2. Append new character to the seed lyrics and remove the very first character.
-```
-new input : ' want to b'
-```
-3. Feed the new seed lyrics into the neural network and iterate the above process as many as you want.
-```
-'I want to ' -> ' want to b' -> 'want to be' -> .... -> 'ing of pop'
-```
-4. In the end, you might get something like 'I want to be king of pop'
+* Make seed lyrics. Feed it to the neural network to generate one character after the seed lyrics, 'b'.
+    ```
+    input: 'I want to ' -> output 'b'
+    ```
+* Append new character to the seed lyrics and remove the very first character.
+    ```
+    new input : ' want to b'
+    ```
+* Feed the new seed lyrics into the neural network and iterate the above process as many as you want.
+    ```
+    'I want to ' -> ' want to b' -> 'want to be' -> .... -> 'ing of pop'
+    ```
+* In the end, you might get something like 'I want to be king of pop'
 
 This process is known as teacher forcing: training neural network that uses model output from a prior time step as an input.
 
 
-#### c. Eminem's lyrics generator
-
+### 3. Eminem's lyrics generator
 
 After one epoch, generated lyrics:
 ```
@@ -174,9 +173,9 @@ input: 'not afraid' output: ') To take a stand) Maybe a dontte the back of the w
 
 
 
-## 3. Word-level RNN
+## Word-level RNN
 
-#### a. Word embedding and word2vec
+### 1. Word embedding and word2vec
 
 Instead of letting the model learning how to spell words. One can upgrade the model from character-level to word-level. Correspondingly, this endows model the ability to learning semantics from the corpus. Since the number of unique words is much larger than that of characters, it is necessay to introduce a new representation: word embedding. This is basically the only difference from character-based model. However, there is much more wisdom than just dimension reduction. The notion was first referred by [Misolov, et al.,2013](https://arxiv.org/pdf/1310.4546.pdf). Word embedding rotates word vector from one-hot representation to word2vec representation.
 
@@ -212,8 +211,7 @@ Epoch 300/300 - loss: 2.1268 - acc: 0.7121 - val_loss: 8.1230 - val_acc: 0.3291
 
 
 
-#### b. Michael Jackson's lyrics generator based on word-level RNN
-
+### 2. Michael Jackson's lyrics generator based on word-level RNN
 
 After 300 epochs:
 ```
@@ -226,23 +224,22 @@ just a little bit baby thats all i need thats all
 60-word: night need you dont understand you need what about hard let me change you comes your truth out and to guess down together together then be her day every thing out the carpet were gonna see this one understand by much then ever so to see you there are long so game if let me get away verse verse cant
 gonna tell you right just show your face in broad daylight
 
-80-word: im create your crescendo how they dance well theres a reason what its a door when here all never door brother its yes we yeah yeah when you start to say if you truth its whole past and they start that can do tell me girl ive wont you have it tell me no little when the door now im cries chorus bridge cause its door made your game chorus ive never stop up and tell me no true oh
-her dreams left behind everything for the movie scene nothing more
+80-word: im create your crescendo how they dance well theres a reason what its a door when here all never door brother its yes we yeah yeah when you start to say if you truth its whole past and they start that can do tell me girl ive wont you have it tell me no little when the door now im cries chorus bridge cause its door made your game chorus ive never stop up and tell me no true oh her dreams left behind everything for the movie scene nothing more
 
 100-word: little start i go a i am away im dreams of this life girl girl tell me fall im together so much i feel you all i say that you say into into i lost my heart i can and you game on me baby ill see i can be far away today i love you from your truth cause youre across the bitch baby does it feel it needs me from a door start that not here there was ghost of moon aint a you better he made the you she win your dreams off the madness i never
 
 ```
 
-#### c. How to improve word-level model?
+### 3. How to improve word-level model?
 
-##### I. Using pretrained word embedding
+#### a. Using pretrained word embedding
 
 Word-level RNN is essentially concatenation of two neural networks. If we train two parts separately, we should achieve better accuracy. However, after using a [pretrained word embedding](https://nlp.stanford.edu/projects/glove/), the accuracy of validation set decreases to 20%. Such a counterintuitive result!
 ```
 Epoch 50/50 - loss: 4.7769 - acc: 0.3353 - val_loss: 6.1902 - val_acc: 0.2160
 ```
 
-```
+```python
 from keras.layers import Embedding
 model = Sequential()
 model.add(Embedding(num_of_tokens, latent_dim, input_length=seq_length, weights=[pretrained_embedding], train = False))
@@ -274,7 +271,7 @@ Maybe it would be better to train the word embedding particularlly for the datas
 
 
 
-##### II. Word-level seq2seq model
+#### b. Word-level seq2seq model
 
 seq2seq model was widely used in [neural tranlation machine](https://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf). But there is nothing wrong to apply it to lyrics generator. The basic idea is to concatenate two LSTM layers in a particular way so that they 'share' the same memory state. Accordingly, unlike many-to-one model, seq2seq model has advantage of keeping the 'long term dependencies'.
 
@@ -284,21 +281,21 @@ However, the performance does not change by much. But from recently research, in
 
 
 
-## 5. Concluding remarks
+## Concluding remarks
 
-1. Takeaways for tunning hyperparameters:
-```
-a. It is easy to overfit the model. It is necessay to add Dropout layer after each LSTM layer.
-b. Sometimes GRU is better than LSTM and computationally cheaper.
-c. Initialization and luck are very important. Try to restart kernel if model is stuck at local minimum.
-d. Try [importance sampling](https://arxiv.org/pdf/1803.00942.pdf) which randomly takes samples from distrution instead of feeding datapoints in order.
-```
-2. Character-based models perform better than word-base. Even though word embedding is a very innovative method in NLP, word vectors by itself hardly convey semantics efficiently.
-3. Future work:
-```
-a. Try negative sampling to boost the training and improve the metrics (much better than softmax).
-b. Implement attention mechanism to seq2seq model.
-```
+* Takeaways for tunning hyperparameters:
+    ```
+    1. It is easy to overfit the model. It is necessay to add Dropout layer after each LSTM layer.
+    2. Sometimes GRU is better than LSTM and computationally cheaper.
+    3. Initialization and luck are very important. Try to restart kernel if model is stuck at local minimum.
+    4. Try [importance sampling](https://arxiv.org/pdf/1803.00942.pdf) which randomly takes samples from distrution instead of feeding datapoints in order.
+    ```
+* Character-based models perform better than word-base. Even though word embedding is a very innovative method in NLP, word vectors by itself hardly convey semantics efficiently.
+* Future work:
+    ```
+    1. Try negative sampling to boost the training and improve the metrics (much better than softmax).
+    2. Implement attention mechanism to seq2seq model.
+    ```
 
 
 
@@ -320,14 +317,3 @@ b. Implement attention mechanism to seq2seq model.
 * Dataset is from [Kaggle](https://www.kaggle.com/gyani95/380000-lyrics-from-metrolyrics).
 
 * Thanks to the tutorial [GPU-accelerated Deep Learning on Windows 10](https://github.com/philferriere/dlwin).
-
-
-
-
-
-
-
-
-
-
-

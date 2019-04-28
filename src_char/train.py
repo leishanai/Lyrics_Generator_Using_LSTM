@@ -1,5 +1,5 @@
 import os
-import keras
+import re
 import numpy as np
 from pickle import dump, load
 from keras.utils import to_categorical
@@ -31,47 +31,52 @@ class char_model():
         
     def train(self):
         
-        self.data_clean()
-        self.one_hot()
         self.data_preparation()
         self.rnn()
         self.fit()
 
     def resume(self):
         '''
-        load pretrained model, dict and cleaned data
-        continue to train
+        resume training by loading pretrained model and cleaned data
         '''
         self.retrieve()
         print(self.model.summary())
         self.fit()
 
     def data_clean(self):
+        
         # read data from file and integer-encode the data
         with open(self.file_path, 'r') as f:
             self.raw_text = f.read()
+            self.raw_text = decontracted(self.raw_text) # expand abbreviation of words
             # integer-encoding chars
             chars = sorted(list(set(self.raw_text))) # unique chars
-            self.char2ix = dict((c, i) for i, c in enumerate(chars)) # char:index
-            self.ix2char = dict((i, c) for i, c in enumerate(chars)) # index:char
-            self.vocab_size = len(self.char2ix)
+            char2ix = dict((c, i) for i, c in enumerate(chars)) # char:index
+            ix2char = dict((i, c) for i, c in enumerate(chars)) # index:char
+            self.vocab_size = len(char2ix)
         # save char2ix and ix2char in one pickle file
-        combined = [self.char2ix, self.ix2char]
+        combined = [char2ix, ix2char]
         dump(combined, open('save/dict.pkl', 'wb'))
+        return char2ix, ix2char
 
     def one_hot(self):
-        # arange raw_text into sequences
-        self.sequences = list()
+
+        # arange raw_text into sequences and one-hot encode
+        char2ix, _ = self.data_clean() 
+        sequences = list()
         for i in range(self.length, len(self.raw_text)):
             seq = self.raw_text[i-self.length:i+1] # cut a 'length+1' long string
-            encoded_seq = [self.char2ix[char] for char in seq] # list of list
-            self.sequences.append(encoded_seq)
+            encoded_seq = [char2ix[char] for char in seq] # list of list
+            sequences.append(encoded_seq)
+        return sequences
     
     def data_preparation(self):
+
+        sequences = self.one_hot()
         # separate each line into input and output
-        self.sequences = np.array(self.sequences)
+        sequences = np.array(sequences)
         # X has length long characters, y is the last character
-        X, y = self.sequences[:,:-1], self.sequences[:,-1]
+        X, y = sequences[:,:-1], sequences[:,-1]
         # one-hot encoding data
         sequences = [to_categorical(x, num_classes=self.vocab_size) for x in X] 
         X = np.array(sequences)
@@ -82,6 +87,7 @@ class char_model():
             x_train = self.X_train, x_test = self.X_test, y_train = self.y_train, y_test = self.y_test)
 
     def rnn(self):
+
         self.model = Sequential()
         # neural network structure
         self.model.add(LSTM(200, input_shape=(self.X_train.shape[1], self.X_train.shape[2]), return_sequences=True, kernel_initializer='he_normal'))
@@ -95,7 +101,6 @@ class char_model():
 
     def fit(self):
         
-
         # recording loss history
         history = LossHistory()
         # save the model (not just weights) after each epoch
@@ -105,14 +110,33 @@ class char_model():
             batch_size=batch_size, epochs=epoch, callbacks=[history, weights])
 
     def retrieve(self):
+
         # load pretrained model
         self.model = load_model('save/model.h5')
         # load cleaned data
         data = np.load('save/data.npz')
         self.X_train, self.X_test = data['x_train'], data['x_test']
         self.y_train, self.y_test = data['y_train'], data['y_test']
-        # load char2ix/ix2char dict
-        self.char2ix, self.ix2char = load(open('save/dict.pkl', 'rb'))
+
+
+
+# expand contractions
+def decontracted(phrase):
+    # specific
+    phrase = re.sub(r"won\'t", "will not", phrase)
+    phrase = re.sub(r"can\'t", "can not", phrase)
+
+    # general
+    phrase = re.sub(r"n\'t", " not", phrase)
+    phrase = re.sub(r"\'re", " are", phrase)
+    phrase = re.sub(r"\'s", " is", phrase)
+    phrase = re.sub(r"\'d", " would", phrase)
+    phrase = re.sub(r"\'ll", " will", phrase)
+    phrase = re.sub(r"\'t", " not", phrase)
+    phrase = re.sub(r"\'ve", " have", phrase)
+    phrase = re.sub(r"\'m", " am", phrase)
+    
+    return phrase
 
 
 

@@ -56,7 +56,7 @@ def loss_plot(loss_train, loss_test):
     ax.plot(xtcks, loss_train, label='Train')
     ax.plot(xtcks, loss_test, label='Test')
     ax.legend()
-    plt.savefig('../images/learning_curve1.jpg')
+    plt.savefig('../images/lc_word.jpg')
     plt.show()
 
 

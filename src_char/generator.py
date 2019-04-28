@@ -61,25 +61,25 @@ def loss_plot(loss_train, loss_test):
     ax.plot(xtcks, loss_train, label='Train')
     ax.plot(xtcks, loss_test, label='Test')
     ax.legend()
-    plt.savefig('../images/learning_curve1.jpg')
+    plt.savefig('../images/lc_char.jpg')
     plt.show()
 
-def acc_plot(acc_train, acc_test):
+# def acc_plot(acc_train, acc_test):
     
-    plt.rcParams["axes.grid"] = True
-    fig, ax = plt.subplots(figsize=(10,6))
-    n = len(acc_train)
-    xtcks = np.arange(1, n+1)
-    ax.set_title('Learning Curve')
-    ax.set_xlabel('Training epochs')
-    ax.set_ylabel('Accuracy')
-    # ax.set_yticklabels(['{:.1%}'.format(x) for x in vals])
-    ax.yaxis.set_major_formatter(FormatStrFormatter('%d%%'))
-    ax.plot(xtcks, acc_train, label='Train')
-    ax.plot(xtcks, acc_test, label='Test')
-    ax.legend()
-    plt.savefig('../images/learning_curve2.jpg')
-    plt.show()
+#     plt.rcParams["axes.grid"] = True
+#     fig, ax = plt.subplots(figsize=(10,6))
+#     n = len(acc_train)
+#     xtcks = np.arange(1, n+1)
+#     ax.set_title('Learning Curve')
+#     ax.set_xlabel('Training epochs')
+#     ax.set_ylabel('Accuracy')
+#     # ax.set_yticklabels(['{:.1%}'.format(x) for x in vals])
+#     ax.yaxis.set_major_formatter(FormatStrFormatter('%d%%'))
+#     ax.plot(xtcks, acc_train, label='Train')
+#     ax.plot(xtcks, acc_test, label='Test')
+#     ax.legend()
+#     plt.savefig('../images/learning_curve2.jpg')
+#     plt.show()
 
 if __name__ == "__main__":
 

@@ -122,7 +122,7 @@ class word_model():
         # True: return c_t and h_t to next layer
         self.model.add(LSTM(200, return_sequences=True, kernel_initializer='he_normal'))
         self.model.add(Dropout(0.3))
-        self.model.add(LSTM(200, kernel_initializer='he_normal')) # 100 = number of memory cells or output size
+        self.model.add(LSTM(200, kernel_initializer='he_normal'))
         self.model.add(Dropout(0.3))
         self.model.add(Dense(300, activation='relu', kernel_initializer='he_normal'))
         self.model.add(Dropout(0.3))

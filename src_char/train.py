@@ -166,7 +166,7 @@ if __name__ == "__main__":
     
     file_path = "../data/eminem.txt"
     # hyperparameters
-    length = 10 # fixed length of input sequences
+    length = 15 # fixed length of input sequences
     epoch = 2
     batch_size = 125
     test_size = 0.33 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     model = char_model(file_path, length, test_size, epoch, batch_size)
     # train or resume train
     if not os.path.exists('save/model.h5'):
-        print('<==========| First training... |==========>')
+        print('<==========| Data preprocessing... |==========>')
         model.train()
     
     else:

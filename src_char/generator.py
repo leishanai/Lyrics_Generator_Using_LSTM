@@ -23,20 +23,18 @@ mpl.rcParams["font.size"] = 18 # font size
 
 
 
-def generator(model, char2ix, ix2char, input_length, seed_text, output_length):
-    
+def generator(seed_text, char2ix, ix2char, max_input_length, output_length, model):
+
     generated_text = seed_text
     # generate a fixed number of characters
     for _ in range(output_length):
         # integer-encoding seed_text
         encoded = [char2ix[char] for char in generated_text]
         # truncate sequences to a fixed length
-        encoded = pad_sequences([encoded], maxlen=input_length, truncating='pre')[0]
+        encoded = pad_sequences([encoded], maxlen=max_input_length, truncating='pre', value = 0.0)[0]
         # one hot encoding
         encoded = to_categorical(encoded, num_classes=len(char2ix))
-        # convert to numpy arrary
-        encoded = np.array(encoded)
-        # input of rnn requires to be tensor 
+        # input of rnn requires to be 3d array 
         encoded = encoded.reshape(1, encoded.shape[0], encoded.shape[1])
         # predict from trained model, greedy search.
         # note that y_ix is nparray, e.g.[1]
@@ -87,11 +85,17 @@ if __name__ == "__main__":
     model = load_model('save/model.h5')
     char2ix, ix2char = load(open('save/dict.pkl', 'rb'))
     
-    generator(model, char2ix, ix2char, 10, 'slim shady', 20)
-    generator(model, char2ix, ix2char, 10, "i'm rap go", 40)
-    generator(model, char2ix, ix2char, 10, 'the way i ', 60)
-    generator(model, char2ix, ix2char, 10, 'lose mysel', 80)
-    generator(model, char2ix, ix2char, 10, 'not afraid', 100)
+    seed_text = "i'm rap god"
+    generator(seed_text, char2ix, ix2char, 15, 20, model)
+    
+    seed_text = 'the way i am'
+    generator(seed_text, char2ix, ix2char, 15, 20, model)
+    
+    seed_text = 'lose myself'
+    generator(seed_text, char2ix, ix2char, 15, 20, model)
+    
+    seed_text = 'not afraid'
+    generator(seed_text, char2ix, ix2char, 15, 20, model)
 
     #############################################################################
     # plot losses

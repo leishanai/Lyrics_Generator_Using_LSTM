@@ -22,26 +22,22 @@ mpl.rcParams["font.size"] = 18 # font size
 
 
 
-def generator(model, tokenizer, ix2word, input_length, seed_text, output_length):
+def generator(seed_text, tokenizer, max_input_length, output_length, model):
 
+	ix2word = tokenizer.index_word
 	generated_text = seed_text
 	# generate a fixed number of words
 	for _ in range(output_length):
 		# encode the text as integer
 		encoded = tokenizer.texts_to_sequences([seed_text])[0] # [0] removes list of list problem
-		# truncate sequences to a fixed length
-		encoded = pad_sequences([encoded], maxlen=input_length, truncating='pre')
-		# convert to numpy arrary
-		encoded = np.array(encoded)
+		# pad or truncate text to the length that matches the trained model
+		encoded = pad_sequences([encoded], maxlen=max_input_length, truncating='pre', value = 0.0)
 		# predict from trained model, greedy search.
-		# note that y_ix is nparray, e.g.[1]
 		y_ix = model.predict_classes(encoded, verbose=0)
-		# boolean of 1==np.array([1]) is true
-		generated_text += ' '+ ix2word[y_ix[0]]
+		generated_text += ' '+ ix2word[y_ix[0]] # e.g. y_ix = [66]
 
 	print('<=== Seed_text: {} ===>'.format(seed_text))
 	print('<=== Generated_lyrics: {} ===>\n'.format(generated_text))
-
 
 
 def loss_plot(loss_train, loss_test):
@@ -60,14 +56,18 @@ def loss_plot(loss_train, loss_test):
     plt.show()
 
 
+
 if __name__ == "__main__":
 
 	# Generator
 	model = load_model('save/model.h5')
-	tokenizer, ix2word = load(open('save/dict.pkl', 'rb'))
+	tokenizer = load(open('save/tokenizer.pkl', 'rb'))
 
-	generator(model, tokenizer, ix2word, 10, 'who is really slim shady please stand up yo yo', 10)
-	generator(model, tokenizer, ix2word, 10, 'look i was gonna go easy on you yo yo', 10)
+	seed_text = 'who is really slim shady'
+	generator(seed_text, tokenizer, 10, 10, model)
+
+	seed_text = 'look i was gonna go easy on you'
+	generator(seed_text, tokenizer, 10, 10, model)
 
 	#############################################################################
     # plot losses

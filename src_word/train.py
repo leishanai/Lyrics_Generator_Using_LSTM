@@ -1,6 +1,5 @@
 import os
 import re
-import string
 import numpy as np
 import unicodedata
 from pickle import dump
@@ -20,6 +19,7 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 2 = INFO and WARNING messages are not printed
 3 = INFO, WARNING, and ERROR messages are not printed
 '''
+
 
 class word_model():
 
@@ -47,34 +47,28 @@ class word_model():
         self.fit()
 
     def data_clean(self):
+        '''
+        we used tokenizer from keras to integer encode unique words
+        '''
 
-        # read data from file and integer-encode the data
+        # read data from file and cut file into sequences with fixed length
         with open(self.file_path, 'r') as f:
             raw_text = f.read()
             raw_text = decontracted(raw_text) # expand contractions
-            doc = normalizeString(raw_text).split() # clean and split doc into separate tokens
+            doc = normalizeString(raw_text).split() # doc consists of separate tokens
             # cut encoded doc into 'self.length+1' long pairs
-            pairs = list()
-            for i in range(self.length, len(doc)):
-                seq = doc[i-self.length : i+1] # cut a 'length+1' long string
-                pairs.append(seq)
+            pairs = [' '.join(doc[i-10:i+1]) for i in range(10,len(doc))] # join back to str
 
-            # use Tokenizer from keras to encode data
-            self.tokenizer = Tokenizer()
-            self.tokenizer.fit_on_texts(pairs)
-            # obtain ix2word
-            word2ix = self.tokenizer.word_index
-            ix2word = {}
-            for word, ix in word2ix.items():
-                ix2word[ix] = word
-            combined = [self.tokenizer, ix2word]
-            dump(combined, open('save/dict.pkl', 'wb'))
-            # convert word to a unique integer(the same as the one from word_index)
-            # e.g. for lines=['hello, there', 'how are you?'], sequences = [[1,2], [4,5,6]]
-            encoded_pairs = self.tokenizer.texts_to_sequences(pairs)
-            # vocabulary size
-            self.vocab_size = len(self.tokenizer.word_index) + 1 # number of distinct words. +1 as index starts from 1(not 0)
-
+        # use Tokenizer from keras to encode data
+        self.tokenizer = Tokenizer()
+        self.tokenizer.fit_on_texts(pairs) # get index for words
+        # e.g. for sequences=[['hello there', 'how are you']], sequences = [[1,2], [4,5,6]]
+        encoded_pairs = self.tokenizer.texts_to_sequences(pairs) # integer encode
+        # vocabulary size
+        self.vocab_size = len(self.tokenizer.word_index) + 1 # +1 as index starts from 1(not 0)
+        # ix2word -> tokenizer.index_word, word2ix -> tokenizer.word_index
+        dump(self.tokenizer, open('save/tokenizer.pkl', 'wb'))
+        
         return encoded_pairs
 
 
@@ -84,9 +78,12 @@ class word_model():
         # separate each line into input and output
         pairs = np.array(pairs)
         # X has length long characters, y is the last character
-        X, y = pairs[:,:-1], pairs[:,-1] # X = 10words, y = 1 word
-        y = to_categorical(y, num_classes=self.vocab_size) # one hot encoding targets
-        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(X, y, test_size=test_size, random_state=666)
+        X, y = pairs[:,:-1], pairs[:,-1] # X: 10words, y: 1 word
+        # one hot encoding targets to fit 'categorical_crossentropy'
+        y = to_categorical(y, num_classes=self.vocab_size)
+        # train/test split
+        self.X_train, self.X_test, self.y_train, self.y_test =\
+            train_test_split(X, y, test_size=test_size, random_state=666)
         # save data in a npz file
         np.savez_compressed('save/data.npz',
             x_train = self.X_train, x_test = self.X_test, y_train = self.y_train, y_test = self.y_test)
@@ -139,7 +136,7 @@ class word_model():
         weights = ModelCheckpoint(filepath = 'save/model.h5')
         # training
         self.model.fit(self.X_train, self.y_train, validation_data=(self.X_test, self.y_test),
-            batch_size=batch_size, epochs=epoch, callbacks=[history, weights])
+            batch_size=self.batch_size, epochs=self.epoch, callbacks=[history, weights])
 
     def retrieve(self):
         # load pretrained model
@@ -234,7 +231,7 @@ if __name__ == "__main__":
     model = word_model(file_path, length, test_size, epoch, batch_size)
     # train or resume train
     if not os.path.exists('save/model.h5'):
-        print('<==========| First training... |==========>')
+        print('<==========| Data preprocessing... |==========>')
         model.train()
     
     else:

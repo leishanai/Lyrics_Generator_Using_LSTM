@@ -84,7 +84,7 @@ Based on bag of words, one can do naive bayes to predict the genre of songs, but
 
 Why recurrent? Different from vanilla neural network, RNN (see below, pic from wikipedia) is able to process sequences of inputs (such as words and sentences) by utilizing the internel state (memory state). Hence, it is regarded as a very promising candidate to solve NLP tasks.
 
-<img src="images/rnn.png"  >
+<div align=center><img src="images/rnn.png" width="100%" ></div>
 
 Inspired by the [minimal character-level Vanilla RNN model](https://gist.github.com/karpathy/d4dee566867f8291f086) from Andrej Karpathy, we decided to build a more complicated RNN model to generate lyrics. Below is the summary of my model: 2 LSTM layers and 1 dense layer.
 ```
@@ -115,10 +115,8 @@ Epoch 600/600 - loss: 0.7529 - acc: 0.7858 - val_loss: 1.6630 - val_acc: 0.6402
 * One-hot encode all characters ( a-z, 0-9 and punctuations ``` !"#$%&()*+,-./:;<=>?@[\\]^_`{|}~\t\n ``` )
     ```python
     from keras.utils import to_categorical
-
-    one-hot_X = to_categorical(X, num_classes=vocab_size)
-
-    [1,2,3] -> [[1,0,0], [0,1,0], [0,0,1]]
+    #[1,2,3] -> [[1,0,0], [0,1,0], [0,0,1]]
+    one-hot_X = to_categorical(X, num_classes=vocab_size)    
     ```
 * Make a sliding window that collects 10 characters as input. Model only generates one character.
     ```
@@ -153,6 +151,9 @@ After one epoch, generated lyrics:
 ```
 input: 'not afraid'    output: 'the me the me the me the me the me the me the me the me the'
 ```
+
+Not smart, it repeats the same words over and over.
+
 After 600 epochs, generated lyrics:
 ```
 20 characters
@@ -171,6 +172,7 @@ input: 'lose myself'    output: ' in the music, the moment You own it, you bette
 input: 'not afraid' output: ') To take a stand) Maybe a dontte the back of the way that I know what the fuck I say to the motherf'
 ```
 
+It is amazing as the generator can spell the word correctly and it is not hard to tell that they have eminem style.
 
 
 ## Word-level RNN
@@ -179,7 +181,7 @@ input: 'not afraid' output: ') To take a stand) Maybe a dontte the back of the w
 
 Instead of letting the model learning how to spell words. One can upgrade the model from character-level to word-level. Correspondingly, this endows model the ability to learning semantics from the corpus. Since the number of unique words is much larger than that of characters, it is necessay to introduce a new representation: word embedding. This is basically the only difference from character-based model. However, there is much more wisdom than just dimension reduction. The notion was first referred by [Misolov, et al.,2013](https://arxiv.org/pdf/1310.4546.pdf). Word embedding rotates word vector from one-hot representation to word2vec representation.
 
-<img src="images/word2vec.jpg"  >
+<div align=center><img src="images/word2vec.png" width="80%" ></div>
 
 ```
 _________________________________________________________________
@@ -214,21 +216,20 @@ Epoch 300/300 - loss: 2.1268 - acc: 0.7121 - val_loss: 8.1230 - val_acc: 0.3291
 ### 2. Michael Jackson's lyrics generator based on word-level RNN
 
 After 300 epochs:
-```
-20-word: here to change the world hee were afraid that away when we change my hand verse ill can never change
+
+* Generate 20-word: here to change the world hee were afraid that away when we change my hand verse ill can never change
 my heart in pieces lost my heart on the carousel to
 
-40-word: a circus girl who left my heart in pieces lost my heart on the carousel to a circus girl who left my heart in pieces lost my heart on the carousel to a circus girl who left my heart in
+* Generate 40-word: a circus girl who left my heart in pieces lost my heart on the carousel to a circus girl who left my heart in pieces lost my heart on the carousel to a circus girl who left my heart in
 just a little bit baby thats all i need thats all
 
-60-word: night need you dont understand you need what about hard let me change you comes your truth out and to guess down together together then be her day every thing out the carpet were gonna see this one understand by much then ever so to see you there are long so game if let me get away verse verse cant
-gonna tell you right just show your face in broad daylight
+* Generate 60-word: night need you dont understand you need what about hard let me change you comes your truth out and to guess down together together then be her day every thing out the carpet were gonna see this one understand by much then ever so to see you there are long so game if let me get away verse verse cant gonna tell you right just show your face in broad daylight
 
-80-word: im create your crescendo how they dance well theres a reason what its a door when here all never door brother its yes we yeah yeah when you start to say if you truth its whole past and they start that can do tell me girl ive wont you have it tell me no little when the door now im cries chorus bridge cause its door made your game chorus ive never stop up and tell me no true oh her dreams left behind everything for the movie scene nothing more
+* Generate 80-word: im create your crescendo how they dance well theres a reason what its a door when here all never door brother its yes we yeah yeah when you start to say if you truth its whole past and they start that can do tell me girl ive wont you have it tell me no little when the door now im cries chorus bridge cause its door made your game chorus ive never stop up and tell me no true oh her dreams left behind everything for the movie scene nothing more
 
-100-word: little start i go a i am away im dreams of this life girl girl tell me fall im together so much i feel you all i say that you say into into i lost my heart i can and you game on me baby ill see i can be far away today i love you from your truth cause youre across the bitch baby does it feel it needs me from a door start that not here there was ghost of moon aint a you better he made the you she win your dreams off the madness i never
+* Generate 100-word: little start i go a i am away im dreams of this life girl girl tell me fall im together so much i feel you all i say that you say into into i lost my heart i can and you game on me baby ill see i can be far away today i love you from your truth cause youre across the bitch baby does it feel it needs me from a door start that not here there was ghost of moon aint a you better he made the you she win your dreams off the madness i never
 
-```
+It generates something with correct grammar at some parts but it is hard to understand the meaning.
 
 ### 3. How to improve word-level model?
 
@@ -266,18 +267,17 @@ Trainable params: 2,359,255
 Non-trainable params: 600,500
 _________________________________________________________________
 ```
-
-Maybe it would be better to train the word embedding particularlly for the dataset by using CBOW or skip-gram.
-
+There are 600,500 non-trainable parameters which are from pretrained word embedding. Using non-trainable embedding seems not working well. Maybe it would be better to train the word embedding particularlly for the dataset by using CBOW or skip-gram.
 
 
-#### b. Word-level seq2seq model
 
-seq2seq model was widely used in [neural tranlation machine](https://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf). But there is nothing wrong to apply it to lyrics generator. The basic idea is to concatenate two LSTM layers in a particular way so that they 'share' the same memory state. Accordingly, unlike many-to-one model, seq2seq model has advantage of keeping the 'long term dependencies'.
+#### b. Word-level Seq2Seq model
 
-<img src="images/seq2seq.jpg"  >
+Seq2Seq model was widely used in [neural tranlation machine](https://papers.nips.cc/paper/5346-sequence-to-sequence-learning-with-neural-networks.pdf). But there is nothing wrong to apply it to lyrics generator. The basic idea is to process input in the encoder end and generate a memory state (a vector) that represents the whole input message. Decoder take the memory state and SOS token to generate one token. Generated token becomes the next input for decoder to predict the next token. The process iterates many cycles until EOS is generated or max length of output is reached. Accordingly, unlike many-to-one model, seq2seq model has advantage of generating more than one token.
 
-However, the performance does not change by much. But from recently research, inplementing [attention mechanism](https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf) could significantly improve the performance.
+<div align=center><img src="images/seq2seq.png" width="80%" ></div>
+
+However, the performance does not change by much. But from recently research, inplementing [attention mechanism](https://papers.nips.cc/paper/7181-attention-is-all-you-need.pdf) could significantly improve the performance. Attention mechanism not only resolves long-term dependency problem of vanilla Seq2Seq languange model but also speeds up training process as it dicarded RNN which disfavors parallel computation.
 
 
 
@@ -293,7 +293,7 @@ However, the performance does not change by much. But from recently research, in
 * Character-based models perform better than word-base. Even though word embedding is a very innovative method in NLP, word vectors by itself hardly convey semantics efficiently.
 * Future work:
     ```
-    1. Try negative sampling to boost the training and improve the metrics (much better than softmax).
+    1. Try negative sampling to boost the training and improve the metrics (better than softmax).
     2. Implement attention mechanism to seq2seq model.
     ```
 
@@ -316,4 +316,4 @@ However, the performance does not change by much. But from recently research, in
 
 * Dataset is from [Kaggle](https://www.kaggle.com/gyani95/380000-lyrics-from-metrolyrics).
 
-* Thanks to the tutorial [GPU-accelerated Deep Learning on Windows 10](https://github.com/philferriere/dlwin).
+* Thanks for the tutorial [GPU-accelerated Deep Learning on Windows 10](https://github.com/philferriere/dlwin).
